@@ -31,6 +31,18 @@ export default function CanvasGraph({
   const transformRef = useRef(d3.zoomIdentity);
   const zoomRef      = useRef(null);          // Feature 4: keep zoom behaviour ref
   const nodesRef     = useRef([]);            // Feature 4: access positions outside effect
+  const renderRef    = useRef(null);
+  const interactionRef = useRef({
+    selectedNode: null,
+    hoveredNode: null,
+    highlightCycles: false,
+    activeCycleIndex: null,
+    searchTerm: '',
+    selectedDirectory: null,
+    showClusters: true,
+    blastRadiusNodeId: null,
+    blastRadiusMap: null,
+  });
 
   const [dirColorMap, setDirColorMap] = useState({});
 
@@ -40,6 +52,24 @@ export default function CanvasGraph({
     for (let i = 0; i < dir.length; i++) hash = dir.charCodeAt(i) + ((hash << 5) - hash);
     return DIRECTORY_PALETTE[Math.abs(hash) % DIRECTORY_PALETTE.length];
   }, []);
+
+  // Interaction state changes should redraw the existing graph, not recreate
+  // the force simulation. Recreating it on every mouse move can overwhelm the
+  // browser for medium and large repositories.
+  useEffect(() => {
+    interactionRef.current = {
+      selectedNode,
+      hoveredNode,
+      highlightCycles,
+      activeCycleIndex,
+      searchTerm,
+      selectedDirectory,
+      showClusters,
+      blastRadiusNodeId,
+      blastRadiusMap,
+    };
+    renderRef.current?.();
+  }, [selectedNode, hoveredNode, highlightCycles, activeCycleIndex, searchTerm, selectedDirectory, showClusters, blastRadiusNodeId, blastRadiusMap]);
 
   /* ─────────────────────────── Feature 4: Focus / Camera Snap ─────────────────────────── */
   useEffect(() => {
@@ -122,7 +152,7 @@ export default function CanvasGraph({
 
     /* Convex hull clusters */
     const getDirectoryHulls = () => {
-      if (!showClusters || isDirMode) return [];
+      if (!interactionRef.current.showClusters || isDirMode) return [];
       const groups = new Map();
       nodes.forEach(n => {
         if (!n.directory || n.directory === 'root') return;
@@ -139,13 +169,23 @@ export default function CanvasGraph({
       return hulls;
     };
 
-    const activeCycle = (highlightCycles && graphData.cycles?.length)
-      ? (activeCycleIndex !== null ? graphData.cycles[activeCycleIndex] : graphData.cycles.flat())
-      : null;
-    const activeCycleSet = new Set(activeCycle || []);
-
     /* ────────────── Render ────────────── */
     const render = () => {
+      const {
+        selectedNode,
+        hoveredNode,
+        highlightCycles,
+        activeCycleIndex,
+        searchTerm,
+        selectedDirectory,
+        blastRadiusNodeId,
+        blastRadiusMap,
+      } = interactionRef.current;
+      const activeCycle = (highlightCycles && graphData.cycles?.length)
+        ? (activeCycleIndex !== null ? graphData.cycles[activeCycleIndex] : graphData.cycles.flat())
+        : null;
+      const activeCycleSet = new Set(activeCycle || []);
+
       ctx.save();
       ctx.clearRect(0, 0, width, height);
 
@@ -329,6 +369,8 @@ export default function CanvasGraph({
       ctx.restore();
     };
 
+    renderRef.current = render;
+
     simulation.on('tick', () => {
       nodesRef.current = nodes; // keep ref fresh
       quadtreeRef.current = d3.quadtree().x(d => d.x).y(d => d.y).addAll(nodes);
@@ -368,7 +410,7 @@ export default function CanvasGraph({
     const onMouseMove = e => {
       const rect  = canvas.getBoundingClientRect();
       const found = getNodeAt(e.clientX - rect.left, e.clientY - rect.top);
-      if (found !== hoveredNode) { setHoveredNode(found); canvas.style.cursor = found ? 'pointer' : 'default'; render(); }
+      if (found !== interactionRef.current.hoveredNode) { setHoveredNode(found); canvas.style.cursor = found ? 'pointer' : 'default'; render(); }
     };
     const onClick = e => {
       const rect  = canvas.getBoundingClientRect();
@@ -399,12 +441,13 @@ export default function CanvasGraph({
 
     return () => {
       simulation.stop();
+      if (renderRef.current === render) renderRef.current = null;
       canvas.removeEventListener('mousemove',   onMouseMove);
       canvas.removeEventListener('click',       onClick);
       canvas.removeEventListener('dblclick',    onDblClick);
       canvas.removeEventListener('contextmenu', onContextMenu);
     };
-  }, [graphData, viewMode, highlightCycles, activeCycleIndex, showClusters, selectedNode, hoveredNode, searchTerm, selectedDirectory, blastRadiusNodeId, blastRadiusMap]);
+  }, [graphData, viewMode]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-dark-950">

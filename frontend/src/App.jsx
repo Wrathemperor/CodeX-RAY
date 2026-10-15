@@ -4,6 +4,8 @@ import CanvasGraph from './components/CanvasGraph';
 import HealthDrawer from './components/HealthDrawer';
 import CodeInspectorDrawer from './components/CodeInspectorDrawer';
 import AIInsightsModal from './components/AIInsightsModal';
+import ScanRepoModal from './components/ScanRepoModal';
+import ScanHistoryDrawer from './components/ScanHistoryDrawer';
 import {
   ZoomIn,
   ZoomOut,
@@ -38,10 +40,22 @@ export default function App() {
   const [isHealthDrawerOpen, setIsHealthDrawerOpen] = useState(false);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanMessage, setScanMessage] = useState('');
+
+  const searchResults = searchTerm.trim()
+    ? (graphData?.nodes || []).filter(node =>
+      node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      node.id.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    : [];
+  const [searchResultIndex, setSearchResultIndex] = useState(0);
+
+  useEffect(() => setSearchResultIndex(0), [searchTerm]);
 
   // 1. Fetch available sample repos and the project selected by the CLI.
   useEffect(() => {
@@ -172,6 +186,15 @@ export default function App() {
     }
   };
 
+  const handleSearchNavigate = (direction) => {
+    if (!searchResults.length) return;
+    const delta = direction === 'prev' ? -1 : 1;
+    const nextIndex = (searchResultIndex + delta + searchResults.length) % searchResults.length;
+    setSearchResultIndex(nextIndex);
+    setSelectedNode(searchResults[nextIndex]);
+    setIsInspectorOpen(true);
+  };
+
   // Directory groupings for directory legend
   const directories = Array.from(new Set(graphData?.nodes?.map(n => n.directory) || [])).filter(Boolean);
 
@@ -184,7 +207,7 @@ export default function App() {
         onSelectSample={handleSelectSample}
         customPath={customPath}
         setCustomPath={setCustomPath}
-        onTriggerScan={(p, f) => triggerScan(p, f)}
+        onOpenScanModal={() => setIsScanModalOpen(true)}
         isScanning={isScanning}
         scanProgress={scanProgress}
         scanMessage={scanMessage}
@@ -198,6 +221,13 @@ export default function App() {
         onOpenAIModal={() => setIsAIModalOpen(true)}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        onSearchNavigate={handleSearchNavigate}
+        searchResults={searchResults}
+        searchResultIndex={searchResultIndex}
+        onOpenHistory={() => setIsHistoryOpen(true)}
+        blastRadiusNodeId={null}
+        blastRadiusCount={0}
+        onClearBlastRadius={() => {}}
         analysisData={analysisData}
         graphStats={graphData?.stats}
       />
@@ -326,6 +356,18 @@ export default function App() {
         isOpen={isAIModalOpen}
         onClose={() => setIsAIModalOpen(false)}
         insightsData={aiInsights}
+      />
+
+      <ScanRepoModal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onTriggerScan={(path, force) => triggerScan(path, force)}
+      />
+
+      <ScanHistoryDrawer
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onLoadScan={loadAllArtifacts}
       />
     </div>
   );
