@@ -36,6 +36,7 @@ export default function App() {
   const [highlightCycles, setHighlightCycles] = useState(false);
   const [activeCycleIndex, setActiveCycleIndex] = useState(null);
   const [showClusters, setShowClusters] = useState(true);
+  const [showFunctionLabels, setShowFunctionLabels] = useState(false);
 
   const [isHealthDrawerOpen, setIsHealthDrawerOpen] = useState(false);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
@@ -217,6 +218,8 @@ export default function App() {
         setHighlightCycles={setHighlightCycles}
         showClusters={showClusters}
         setShowClusters={setShowClusters}
+        showFunctionLabels={showFunctionLabels}
+        setShowFunctionLabels={setShowFunctionLabels}
         onOpenHealthDrawer={() => setIsHealthDrawerOpen(true)}
         onOpenAIModal={() => setIsAIModalOpen(true)}
         searchTerm={searchTerm}
@@ -250,6 +253,7 @@ export default function App() {
             searchTerm={searchTerm}
             selectedDirectory={selectedDirectory}
             showClusters={showClusters}
+            showFunctionLabels={showFunctionLabels}
             onOpenInspector={(node) => {
               setSelectedNode(node);
               setIsInspectorOpen(true);

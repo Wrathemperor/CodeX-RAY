@@ -64,6 +64,14 @@ def test_python_circular_dependencies():
     cycle_files = set(graph_data["cycles"][0])
     assert "services/auth_service.py" in cycle_files or "services/user_service.py" in cycle_files
 
+    # Named imports expose the symbol that creates a cross-file connection.
+    auth_link = next(
+        link for link in graph_data["links"]
+        if link["source"] == "services/auth_service.py" and link["target"] == "services/user_service.py"
+    )
+    assert "notify_user_login" in auth_link["symbols"]
+    assert graph_data["stats"]["total_symbol_connections"] > 0
+
     analyzer = ArchitectureAnalyzer()
     analysis = analyzer.analyze(graph_data)
     print(f"  Health Score: {analysis['health_score']}/100, Grade: {analysis['grade']}")

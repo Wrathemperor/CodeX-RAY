@@ -41,6 +41,7 @@ class GraphEngine:
 
         # 2. Resolve edges
         edges_set: Set[Tuple[str, str]] = set()
+        edge_symbols: Dict[Tuple[str, str], Set[str]] = defaultdict(set)
 
         for f in files:
             source_id = f["id"]
@@ -55,9 +56,14 @@ class GraphEngine:
                     target_id = resolver.resolve_python_import(source_id, imp.get("module"), imp.get("level", 0))
 
                 if target_id and target_id in nodes_dict and target_id != source_id:
-                    edges_set.add((source_id, target_id))
+                    edge = (source_id, target_id)
+                    edges_set.add(edge)
                     adjacency[source_id].add(target_id)
                     reverse_adjacency[target_id].add(source_id)
+                    target_symbols = set(nodes_dict[target_id]["functions"]) | set(nodes_dict[target_id]["classes"]) | set(nodes_dict[target_id]["exports"])
+                    edge_symbols[edge].update(
+                        symbol for symbol in imp.get("symbols", []) if symbol in target_symbols
+                    )
 
         # 3. Calculate degrees
         for source_id, target_id in edges_set:
@@ -89,7 +95,8 @@ class GraphEngine:
             links.append({
                 "source": source_id,
                 "target": target_id,
-                "in_cycle": is_cycle_link
+                "in_cycle": is_cycle_link,
+                "symbols": sorted(edge_symbols[(source_id, target_id)])
             })
 
         # 6. Build directory clusters & aggregated compound graph
@@ -106,6 +113,7 @@ class GraphEngine:
             "stats": {
                 "total_files": len(nodes_dict),
                 "total_dependencies": len(links),
+                "total_symbol_connections": sum(len(link["symbols"]) for link in links),
                 "total_cycles": len(cycles),
                 "max_loc": max([n["loc"] for n in nodes_dict.values()], default=0)
             }

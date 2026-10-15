@@ -31,6 +31,8 @@ export default function Header({
   setHighlightCycles,
   showClusters,
   setShowClusters,
+  showFunctionLabels,
+  setShowFunctionLabels,
   onOpenHealthDrawer,
   onOpenAIModal,
   onOpenHistory,
@@ -200,6 +202,18 @@ export default function Header({
           title="Toggle directory clustering hulls"
         >
           Clusters
+        </button>
+
+        <button
+          onClick={() => setShowFunctionLabels(!showFunctionLabels)}
+          className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition ${
+            showFunctionLabels
+              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+              : 'border-white/10 text-slate-400 hover:text-slate-200'
+          }`}
+          title="Show imported functions and symbols on dependency lines"
+        >
+          Functions
         </button>
 
         {/* Cycles */}

@@ -18,6 +18,7 @@ export default function CanvasGraph({
   searchTerm = '',
   selectedDirectory = null,
   showClusters = true,
+  showFunctionLabels = false,
   onOpenInspector,
   onBlastRadius,       // Feature 1: right-click → compute blast radius
   blastRadiusNodeId,   // Feature 1: source node id
@@ -40,6 +41,7 @@ export default function CanvasGraph({
     searchTerm: '',
     selectedDirectory: null,
     showClusters: true,
+    showFunctionLabels: false,
     blastRadiusNodeId: null,
     blastRadiusMap: null,
   });
@@ -65,11 +67,12 @@ export default function CanvasGraph({
       searchTerm,
       selectedDirectory,
       showClusters,
+      showFunctionLabels,
       blastRadiusNodeId,
       blastRadiusMap,
     };
     renderRef.current?.();
-  }, [selectedNode, hoveredNode, highlightCycles, activeCycleIndex, searchTerm, selectedDirectory, showClusters, blastRadiusNodeId, blastRadiusMap]);
+  }, [selectedNode, hoveredNode, highlightCycles, activeCycleIndex, searchTerm, selectedDirectory, showClusters, showFunctionLabels, blastRadiusNodeId, blastRadiusMap]);
 
   /* ─────────────────────────── Feature 4: Focus / Camera Snap ─────────────────────────── */
   useEffect(() => {
@@ -178,6 +181,7 @@ export default function CanvasGraph({
         activeCycleIndex,
         searchTerm,
         selectedDirectory,
+        showFunctionLabels,
         blastRadiusNodeId,
         blastRadiusMap,
       } = interactionRef.current;
@@ -280,6 +284,20 @@ export default function CanvasGraph({
         ctx.lineTo(l.target.x, l.target.y);
         ctx.stroke();
         ctx.shadowBlur = 0;
+
+        if (showFunctionLabels && !isDirMode && l.symbols?.length && !isDimmed) {
+          const label = l.symbols.join(', ');
+          const mx = (l.source.x + l.target.x) / 2;
+          const my = (l.source.y + l.target.y) / 2;
+          ctx.font = `${Math.max(9, 10 / t.k)}px JetBrains Mono, monospace`;
+          const labelWidth = ctx.measureText(label).width;
+          ctx.fillStyle = 'rgba(11, 15, 25, 0.88)';
+          ctx.fillRect(mx - labelWidth / 2 - 4 / t.k, my - 8 / t.k, labelWidth + 8 / t.k, 16 / t.k);
+          ctx.fillStyle = '#6EE7B7';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, mx, my);
+        }
 
         /* Arrow */
         if (!isDimmed && dr > 30) {
@@ -450,7 +468,7 @@ export default function CanvasGraph({
   }, [graphData, viewMode]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-dark-950">
+    <div ref={containerRef} className="graph-sheet relative w-full h-full overflow-hidden bg-dark-950">
       <canvas ref={canvasRef} className="block w-full h-full" />
 
       {/* Right-click hint (shown only when nothing is active) */}

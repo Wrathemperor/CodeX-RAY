@@ -26,6 +26,9 @@ class CodeParser:
             r"""(?:function\*?\s+([a-zA-Z0-9_$]+)|const\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>)"""
         )
         self.js_class_regex = re.compile(r"""class\s+([a-zA-Z0-9_$]+)""")
+        self.js_import_binding_regex = re.compile(
+            r"""(?:import|export)\s+(?:type\s+)?(?P<bindings>[\s\S]*?)\s+from\s+['"](?P<target>[^'"]+)['"]"""
+        )
 
     def parse_file(self, abs_path: str, rel_path: str, ext: str) -> Dict:
         """
@@ -75,13 +78,15 @@ class CodeParser:
                     result["raw_imports"].append({
                         "type": "py",
                         "module": alias.name,
-                        "level": 0
+                        "level": 0,
+                        "symbols": []
                     })
             elif isinstance(node, ast.ImportFrom):
                 result["raw_imports"].append({
                     "type": "py",
                     "module": node.module,
-                    "level": node.level
+                    "level": node.level,
+                    "symbols": [alias.name for alias in node.names if alias.name != "*"]
                 })
             elif isinstance(node, ast.ClassDef):
                 result["classes"].append(node.name)
@@ -104,7 +109,8 @@ class CodeParser:
                 result["raw_imports"].append({
                     "type": "py",
                     "module": clean_mod if clean_mod else None,
-                    "level": level
+                    "level": level,
+                    "symbols": []
                 })
                 continue
             # import X
@@ -116,13 +122,22 @@ class CodeParser:
                         result["raw_imports"].append({
                             "type": "py",
                             "module": p,
-                            "level": 0
+                            "level": 0,
+                            "symbols": []
                         })
 
     def _parse_javascript(self, content: str, lines: List[str], result: Dict):
         result["comment_lines"] = len([
             l for l in lines if l.strip().startswith("//") or l.strip().startswith("/*") or l.strip().startswith("*")
         ])
+
+        imported_symbols = {}
+        for match in self.js_import_binding_regex.finditer(content):
+            target = match.group("target").strip()
+            bindings = match.group("bindings").strip()
+            symbols = self._parse_js_import_bindings(bindings)
+            if target and symbols:
+                imported_symbols.setdefault(target, set()).update(symbols)
 
         seen_imports = set()
         for rx in self.js_import_regexes:
@@ -132,7 +147,8 @@ class CodeParser:
                     seen_imports.add(target)
                     result["raw_imports"].append({
                         "type": "js",
-                        "target": target
+                        "target": target,
+                        "symbols": sorted(imported_symbols.get(target, set()))
                     })
 
         # Find exports
@@ -152,3 +168,22 @@ class CodeParser:
             name = match.group(1) or match.group(2)
             if name and name not in result["functions"]:
                 result["functions"].append(name)
+
+    @staticmethod
+    def _parse_js_import_bindings(bindings: str) -> List[str]:
+        """Return imported source symbols for common ES module import forms."""
+        if not bindings or bindings.startswith("*"):
+            return []
+
+        symbols = []
+        named_match = re.search(r"\{([^}]+)\}", bindings)
+        if named_match:
+            for item in named_match.group(1).split(","):
+                name = item.strip().removeprefix("type ").split(" as ")[0].strip()
+                if name:
+                    symbols.append(name)
+
+        default_part = bindings.split("{")[0].strip().rstrip(",").removeprefix("type ").strip()
+        if default_part and not default_part.startswith("*"):
+            symbols.append("default")
+        return symbols

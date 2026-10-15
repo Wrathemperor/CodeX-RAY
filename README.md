@@ -26,6 +26,7 @@
 * **Tarjan's Strongly Connected Components (SCC)**: Deterministically detects cycles and recursive import loops with $O(V + E)$ complexity.
 * **Cycle Highlighting & Pulsing**: One-click cycle mode highlights circular dependencies in glowing crimson and dims unrelated nodes.
 * **Hierarchical Macro Compound View**: Summarizes file-level graphs into directory-level aggregated nodes with weighted inter-package edges.
+* **Named Symbol Links**: Turn on **Functions** in the dashboard to label dependency lines with imported exported functions, classes, and components when they can be resolved statically.
 
 ### 4. Architectural Health Score & God Module Detection
 * **Maintainability Index (0–100 & Letter Grades A–F)**: Calculates an overall architecture health score with penalty deductions for circular imports, excessive hub coupling, and dead code.
