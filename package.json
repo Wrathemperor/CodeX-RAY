@@ -1,0 +1,30 @@
+{
+  "name": "code-x-ray",
+  "version": "1.0.0",
+  "description": "Local codebase architecture maps and health insights",
+  "license": "MIT",
+  "author": "CodeX-RAY Contributors",
+  "type": "commonjs",
+  "bin": {
+    "code-x-ray": "bin/code-x-ray.cjs"
+  },
+  "files": [
+    "bin/",
+    "backend/**/*.py",
+    "backend/samples/**",
+    "frontend/dist/",
+    "requirements.txt"
+  ],
+  "scripts": {
+    "build": "npm run build:frontend",
+    "build:frontend": "npm --prefix frontend run build",
+    "test": "python tests/test_backend.py",
+    "check": "node --check bin/code-x-ray.cjs && npm run test && npm run build",
+    "prepack": "npm run check"
+  },
+  "engines": {
+    "node": ">=18",
+    "python": ">=3.10"
+  },
+  "keywords": ["codebase", "architecture", "dependency-graph", "visualization"]
+}

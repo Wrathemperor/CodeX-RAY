@@ -1,0 +1,29 @@
+{
+  "name": "code-x-ray-workspace-prompt",
+  "displayName": "CodeX-RAY Workspace Prompt",
+  "description": "Ask whether to open a local CodeX-RAY architecture map when a workspace opens.",
+  "version": "1.0.0",
+  "publisher": "code-x-ray",
+  "license": "MIT",
+  "author": "CodeX-RAY Contributors",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "files": ["extension.js", "README.md", "LICENSE"],
+  "contributes": {
+    "configuration": {
+      "title": "CodeX-RAY",
+      "properties": {
+        "codeXRay.promptOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask whether to visualize a project when its workspace opens."
+        }
+      }
+    },
+    "commands": [
+      { "command": "codeXRay.openWorkspace", "title": "CodeX-RAY: Visualize This Workspace" }
+    ]
+  }
+}
