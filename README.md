@@ -50,6 +50,26 @@ This installs dependencies, starts the FastAPI server, and opens `http://localho
 npx --yes code-x-ray .
 ```
 
+### Auto-launch with VS Code Extension
+
+To run CodeX-RAY automatically whenever a project folder opens in VS Code:
+
+1. Package the extension:
+   ```bash
+   npx --yes @vscode/vsce package --cwd vscode-extension
+   ```
+2. Install the generated `.vsix` file:
+   ```bash
+   code --install-extension vscode-extension/code-x-ray-workspace-prompt-1.0.0.vsix
+   ```
+3. To enable instant launch without prompting, add this to your VS Code `settings.json`:
+   ```json
+   {
+     "codeXRay.autoStart": true
+   }
+   ```
+   When set to `true`, CodeX-RAY launches in the background and opens the dashboard when any workspace opens. Leave as `false` (default) to show an interactive prompt instead.
+
 ---
 
 ## Development

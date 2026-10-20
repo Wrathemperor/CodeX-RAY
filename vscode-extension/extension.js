@@ -35,6 +35,10 @@ async function askToVisualize(context, output) {
   if (!folders.length) return;
 
   const config = vscode.workspace.getConfiguration('codeXRay');
+  if (config.get('autoStart', false)) {
+    launchWorkspace(context, folders[0], output);
+    return;
+  }
   if (!config.get('promptOnOpen', true) || context.globalState.get('dontAskAgain')) return;
 
   let folder = folders[0];

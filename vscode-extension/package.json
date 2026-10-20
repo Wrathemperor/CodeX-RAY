@@ -15,6 +15,11 @@
     "configuration": {
       "title": "CodeX-RAY",
       "properties": {
+        "codeXRay.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically launch CodeX-RAY server and open the browser dashboard when a project opens."
+        },
         "codeXRay.promptOnOpen": {
           "type": "boolean",
           "default": true,
