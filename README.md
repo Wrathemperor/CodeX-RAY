@@ -1,4 +1,4 @@
-# CodeX-RAY — Interactive Architectural Intelligence Platform
+# CodeX-RAY
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-v0.110%2B-009688.svg)](https://fastapi.tiangolo.com/)
@@ -6,208 +6,163 @@
 [![D3.js](https://img.shields.io/badge/D3.js-v7-F9A03C.svg)](https://d3js.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**CodeX-RAY** is an architectural intelligence and codebase visualization platform that helps engineering teams understand dependency topology, circular loops, structural coupling, and overall architectural health.
+CodeX-RAY parses Python, JavaScript, and TypeScript codebases to visualize dependencies, flag circular imports, compute blast radius, and calculate architecture health scores.
 
 ---
 
-## ⚡ Key Technical Innovations
+## Features
 
-### 1. Canvas-Based Force Engine (Zero SVG DOM Bottleneck)
-* **HTML5 Canvas Rendering**: Eliminates DOM overhead by drawing thousands of nodes, directed dependency arrows, and glowing cycle halos on a hardware-accelerated canvas.
-* **Spatial Quadtree Indexing (`d3-quadtree`)**: Fast $O(\log n)$ spatial lookups for hover detection, tooltips, and node click selection even under heavy physics simulations.
-* **Convex Clustering Hulls**: Dynamically computes 2D convex polygons enveloping modules in the same directory using smooth alpha-padded overlays.
+### Graph Engine
+* **Canvas rendering**: Draws nodes, directed arrows, and cycles on an HTML5 canvas without SVG DOM slowdowns.
+* **Spatial indexing**: Uses `d3-quadtree` for instant hover lookups and selection during physics simulations.
+* **Directory clustering**: Draws 2D convex polygons around files sharing a directory.
 
-### 2. Polyglot AST Parsing & Resilient Import Resolution
-* **JavaScript / TypeScript**: Resolves extension-less imports (`./utils`), directory indexing (`/index.ts`, `/index.js`), and `tsconfig.json` path aliases (e.g. `@/*` mapped to `src/*`).
-* **Python**: Parses syntax trees using Python's native `ast` module; differentiates third-party packages from project modules, and normalizes explicit relative imports (`from .database import get_session`).
-* **`.gitignore` Integration**: Scans repository roots using Git spec compliance (`pathspec`) while ignoring `node_modules`, `venv`, `__pycache__`, `.git`, and build output directories.
+### AST Parsing & Import Resolution
+* **JS/TS**: Resolves extension-less imports, `index.ts`/`index.js` directory imports, and `tsconfig.json` path aliases (`@/*`).
+* **Python**: Uses Python's native `ast` module to resolve internal modules and relative imports (`from .database import get_session`).
+* **Gitignore**: Respects `.gitignore` rules via `pathspec`, ignoring `node_modules`, `venv`, `.git`, and build outputs.
 
-### 3. Topological Graph Theory & Cycle Isolation
-* **Tarjan's Strongly Connected Components (SCC)**: Deterministically detects cycles and recursive import loops with $O(V + E)$ complexity.
-* **Cycle Highlighting & Pulsing**: One-click cycle mode highlights circular dependencies in glowing crimson and dims unrelated nodes.
-* **Hierarchical Macro Compound View**: Summarizes file-level graphs into directory-level aggregated nodes with weighted inter-package edges.
-* **Named Symbol Links**: Turn on **Functions** in the dashboard to label dependency lines with imported exported functions, classes, and components when they can be resolved statically.
-
-### 4. Architectural Health Score & God Module Detection
-* **Maintainability Index (0–100 & Letter Grades A–F)**: Calculates an overall architecture health score with penalty deductions for circular imports, excessive hub coupling, and dead code.
-* **God Module Identification**: Flags files exceeding safe in-degree + out-degree thresholds that represent fragile architectural bottlenecks.
-* **Orphan / Dead Code Tracking**: Identifies completely disconnected files (0 incoming, 0 outgoing imports).
-
-### 5. Token-Budgeted AI Architectural Intelligence
-* **Structured Executive Insights**: Synthesizes graph topology, cycles, and coupling hubs into high-density actionable findings and a refactoring roadmap.
-* **On-Demand File Audits**: Delivers architectural impact evaluations (blast radius, dependency role, decoupling advice) on individual clicked files.
+### Analysis & Metrics
+* **Cycle detection**: Tarjan's Strongly Connected Components algorithm finds circular import loops.
+* **Health score (0–100, grades A–F)**: Scores maintainability based on cycle count, hub coupling, and dead code.
+* **God module detection**: Flags files exceeding in-degree and out-degree thresholds.
+* **Orphan tracking**: Lists files with zero incoming and zero outgoing imports.
+* **Blast radius analysis**: Right-click any file node to trace affected downstream dependencies.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### Use from npm
+### Run from Source
 
-After publishing this package to npm as `code-x-ray`, install the command-line launcher globally to scan a project and open its graph and architecture health dashboard in your browser:
+#### Prerequisites
+* Python 3.10+
+* Node.js 18+ (needed only if modifying frontend code)
 
+#### Launch
 ```bash
-npm install --global code-x-ray
-cd path/to/your-project
-code-x-ray .
+python run.py
 ```
+This installs dependencies, starts the FastAPI server, and opens `http://localhost:8000`.
 
-Or run it once without a global install:
-
+### Run via npm CLI
 ```bash
 npx --yes code-x-ray .
 ```
 
-The CLI asks before scanning, binds the dashboard to `127.0.0.1`, and keeps the server running until you press **Ctrl+C**. It needs Node.js 18+ and Python 3.10+; the first run creates an isolated Python environment in your user cache and installs the backend requirements there.
-
-To run the launcher from this checkout before publishing, use `node bin/code-x-ray.cjs .`.
-
-### Prompt when a VS Code project opens
-
-npm and npx commands run when invoked; they cannot detect projects opened later in an editor. For the project-open prompt, install the **CodeX-RAY Workspace Prompt** VS Code extension as well. When published, it will prompt for each workspace and run the npm CLI after you choose **Open CodeX-RAY**. Set `codeXRay.promptOnOpen` to `false`, or choose **Don't ask again**, to disable the prompt.
-
-The extension source is in [`vscode-extension/`](vscode-extension/README.md). Until it is published to the Marketplace, run it from the VS Code Extension Development Host or package and install it locally with `@vscode/vsce`.
-
-### Run from source
-
-### Prerequisites
-* Python 3.10+
-* Node.js 18+ (only needed for frontend development; pre-built production assets are included)
-
-### 1-Command Launch
-Clone the repository and run:
-```bash
-python run.py
-```
-This automatically verifies dependencies, serves the FastAPI API + React production bundle, and launches your browser to **`http://localhost:8000`**.
-
 ---
 
-## 🛠️ Development Mode
+## Development
 
-If you wish to develop backend and frontend simultaneously with hot-reloading:
+Run backend and frontend servers with hot reload:
 
-### 1. Backend Server
+### Backend
 ```bash
 pip install -r requirements.txt
 python -m uvicorn backend.server:app --reload --port 8000
 ```
 
-### 2. Frontend Server (Vite)
+### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Open **`http://localhost:5173`** (Vite proxies API calls to port 8000).
+Open `http://localhost:5173`.
 
 ---
 
-## 📂 Project Architecture
+## Project Structure
 
 ```
 CodeX-RAY/
 ├── backend/
-│   ├── scanner.py          # .gitignore-aware file discovery & indexing
-│   ├── resolver.py         # JS/TS tsconfig alias resolver & Python import resolver
-│   ├── parser.py           # AST-based Python & JS/TS symbol & import extractor
-│   ├── graph_engine.py     # D3 topology builder, Tarjan SCC cycle detection, compound graphs
-│   ├── analyzer.py         # Health score, God modules, orphan detection, modularity ratio
-│   ├── ai_service.py       # Structured architectural summary & file audit generator
-│   ├── server.py           # FastAPI server with background jobs, polling, & REST endpoints
-│   └── samples/            # Bundled test repositories (Python microservice, React e-commerce)
+│   ├── scanner.py          # File discovery and .gitignore filtering
+│   ├── resolver.py         # TS alias and Python import resolution
+│   ├── parser.py           # AST symbol and import extraction
+│   ├── graph_engine.py     # Graph builder, Tarjan SCC cycle detection
+│   ├── analyzer.py         # Health scores, god modules, orphans
+│   ├── ai_service.py       # Architecture summary and file audits
+│   ├── server.py           # FastAPI server and REST endpoints
+│   └── samples/            # Test repositories
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── CanvasGraph.jsx         # HTML5 Canvas + d3-force + d3-quadtree renderer
-│   │   │   ├── Header.jsx              # Controls, search, view mode toggles, badges
-│   │   │   ├── HealthDrawer.jsx        # Architecture health radar & cycle isolation
-│   │   │   ├── CodeInspectorDrawer.jsx # Symbol inspector, source code preview, AI audit
-│   │   │   └── AIInsightsModal.jsx     # Executive architecture findings & roadmap modal
-│   │   ├── App.jsx                     # Top-level state coordinator & HUD stats bar
-│   │   └── index.css                   # Tailwind CSS styling, dark glow animations
-│   ├── vite.config.js                  # Vite configuration & backend proxy
+│   │   │   ├── CanvasGraph.jsx         # Canvas renderer with coordinate HUD
+│   │   │   ├── Header.jsx              # Controls, search, view modes
+│   │   │   ├── HealthDrawer.jsx        # Health metrics and cycle inspector
+│   │   │   ├── CodeInspectorDrawer.jsx # Symbol inspector and code viewer
+│   │   │   ├── ScanRepoModal.jsx       # Path input and folder picker
+│   │   │   └── AuthModal.jsx           # Email/password authentication modal
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx         # Firebase auth and role management
+│   │   ├── App.jsx                     # Top-level state coordinator
+│   │   └── index.css                   # Blueprint theme and drafting grid
 │   └── dist/                           # Compiled production static bundle
 ├── tests/
-│   └── test_backend.py     # Automated unit test suite (scanner, resolver, graph engine)
-├── run.py                  # Single-command launcher script
+│   └── test_backend.py     # Unit tests for scanner, resolver, and graph engine
+├── run.py                  # Single-command launcher
 ├── requirements.txt        # Python dependencies
 └── README.md
 ```
 
 ---
 
-## 📡 REST API Reference
+## REST API
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
-| `/api/samples` | `GET` | List available demo repositories with tech stack metadata |
-| `/api/config` | `GET` | Return the project path selected by the CLI launcher, if any |
-| `/api/scan` | `POST` | Trigger asynchronous repository scan job (`sample_id` or custom `path`) |
-| `/api/scan/status/{job_id}` | `GET` | Poll scan job status, progress percentage, and log messages |
-| `/api/graph` | `GET` | Retrieve complete node/link graph topology, cycles, and directory compound graph |
-| `/api/health` | `GET` | Retrieve maintainability health score (0–100), grade, God modules, and orphans |
-| `/api/ai/insights` | `GET` | Retrieve structured executive findings, verdict, and refactoring action items |
-| `/api/ai/file-insight` | `POST` | Retrieve targeted AI architectural audit for a specific file node |
-| `/api/file?path={path}` | `GET` | Fetch source code content and AST metadata for code inspector drawer |
+| `/api/samples` | `GET` | List available demo repositories |
+| `/api/config` | `GET` | Return CLI workspace path |
+| `/api/browse-directory` | `POST` | Open native OS folder picker dialog |
+| `/api/validate-path` | `GET` | Check directory existence and estimate source file count |
+| `/api/scan` | `POST` | Start repository scan |
+| `/api/scan/status/{job_id}` | `GET` | Check scan progress |
+| `/api/graph` | `GET` | Get node and link graph data |
+| `/api/health` | `GET` | Get maintainability score and issue breakdown |
+| `/api/ai/insights` | `GET` | Get architectural findings and refactoring suggestions |
+| `/api/ai/file-insight` | `POST` | Audit a specific file node |
+| `/api/file?path={path}` | `GET` | Fetch source code content |
 
 ---
 
-## 🧪 Testing
+## Authentication & Firebase Setup
 
-Run the automated backend test suite:
-```bash
-python tests/test_backend.py
-```
-* **Scanner Tests**: Validates file inclusion, `.gitignore` filtering, and file indexing.
-* **Resolver Tests**: Verifies TS path alias resolution (`@/components/ProductCard`), directory `index.ts` resolution, and Python relative imports.
-* **Graph Engine Tests**: Verifies Tarjan SCC cycle detection and bidirectional cycle marking.
+CodeX-RAY supports optional user accounts via Firebase Authentication (email/password) and Firestore.
+
+1. Create a project in [Firebase Console](https://console.firebase.google.com/).
+2. Under **Build > Authentication > Sign-in method**, enable **Email/Password**.
+3. Under **Build > Firestore Database**, create a database.
+4. Go to **Project Settings > General > Your apps**, register a Web app, and copy the credentials.
+5. Create `frontend/.env.local` using `frontend/.env.example`:
+   ```bash
+   cp frontend/.env.example frontend/.env.local
+   ```
+6. Add your keys:
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   VITE_ADMIN_EMAILS=your_email@example.com
+   ```
+7. Rebuild frontend assets:
+   ```bash
+   cd frontend && npm run build
+   ```
 
 ---
 
-## 🔐 Free Account & Firebase Setup
+## Testing
 
-CodeX-RAY gates access behind free email & password registration stored in Google Firebase.
-
-### 1. Create a Firebase Project
-1. Go to the [Firebase Console](https://console.firebase.google.com/) and click **Create a project**.
-2. Go to **Build > Authentication > Sign-in method**, enable **Email/Password**, and save.
-3. Go to **Build > Firestore Database**, click **Create database**, and start in production (or test) mode.
-4. Go to **Project Settings > General**, under *Your apps*, click the **Web (`</>`)** icon, and register the app.
-5. Copy the configuration object keys.
-
-### 2. Configure Environment Variables
-Copy `.env.example` to `frontend/.env` and insert your Firebase credentials:
 ```bash
-cp frontend/.env.example frontend/.env
-```
-
-```env
-VITE_FIREBASE_API_KEY=AIzaSy...
-VITE_FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-app
-VITE_FIREBASE_STORAGE_BUCKET=your-app.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:...
-```
-
-Rebuild frontend assets:
-```bash
-cd frontend && npm run build
+python -m pytest tests/
 ```
 
 ---
 
-## 🐙 Push to GitHub
+## License
 
-1. Create a new repository on [GitHub](https://github.com/new) (e.g. `CodeX-RAY`).
-2. Add the remote and push:
-```bash
-git remote add origin https://github.com/<your-username>/CodeX-RAY.git
-git branch -M main
-git push -u origin main
-```
-
----
-
-## 📄 License
-Released under the [MIT License](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance and [SECURITY.md](SECURITY.md) for vulnerability reporting.
+Released under the [MIT License](LICENSE).
