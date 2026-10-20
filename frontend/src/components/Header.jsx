@@ -45,6 +45,9 @@ export default function Header({
   blastRadiusNodeId,
   blastRadiusCount,
   onClearBlastRadius,
+  currentUser,
+  onOpenAuthModal,
+  onLogout,
 }) {
   const searchRef = useRef(null);
 
@@ -61,27 +64,34 @@ export default function Header({
   const currentSample = samples.find(s => s.id === currentSampleId);
 
   return (
-    <header className="absolute top-0 left-0 right-0 z-30 h-16 px-5 flex items-center justify-between glass-panel border-b border-white/10 select-none">
+    <header className="absolute top-0 left-0 right-0 z-30 h-16 px-5 flex items-center justify-between glass-panel border-b border-[#00FFFF]/30 select-none blueprint-crosshair">
 
       {/* ── Brand + Repo Selector ── */}
       <div className="flex items-center gap-3">
-        {/* Logo */}
+        {/* Logo / Drafting Stamp */}
         <div className="flex items-center gap-2.5 shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 p-[1px] shadow-glow">
-            <div className="w-full h-full bg-dark-900 rounded-xl flex items-center justify-center">
-              <ScanLine className="w-5 h-5 text-cyan-400" />
-            </div>
+          <div className="w-9 h-9 rounded bg-[#001C38] border border-[#00FFFF]/60 flex items-center justify-center shadow-blueprint">
+            <ScanLine className="w-5 h-5 text-[#00FFFF]" />
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-cyan-300 bg-clip-text text-transparent">
-              CodeX-RAY
-            </h1>
-            <p className="text-[10px] font-mono text-slate-400 leading-none">v3.0 Architecture X-Ray</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-bold tracking-widest font-mono text-white uppercase">
+                CodeX-RAY
+              </h1>
+              <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-[#00FFFF]/10 border border-[#00FFFF]/40 text-[#00FFFF]">
+                DWG NO. CR-300
+              </span>
+            </div>
+            <p className="text-[10px] font-mono text-[#00FFFF]/60 leading-none tracking-wider">
+              [ ARCHITECTURAL SCHEMATIC // 1:1 ]
+            </p>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="w-px h-6 bg-white/10" />
+        {/* Dimension separator */}
+        <div className="text-[10px] font-mono text-white/30 hidden md:block">
+          &lt;--- 1200px ---&gt;
+        </div>
 
         {/* Sample Picker */}
         <div className="flex items-center bg-dark-900/90 rounded-lg p-1 border border-white/10">
@@ -216,18 +226,18 @@ export default function Header({
           Functions
         </button>
 
-        {/* Cycles */}
+        {/* Cycles (Redline) */}
         <button
           onClick={() => setHighlightCycles(!highlightCycles)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border font-medium transition ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded border font-mono transition ${
             highlightCycles
-              ? 'border-rose-500/50 bg-rose-500/20 text-rose-300 pulse-badge'
-              : 'border-white/10 text-slate-400 hover:text-slate-200'
+              ? 'blueprint-redline pulse-badge font-bold'
+              : 'border-white/20 text-[#FF9999] hover:bg-[#FF3333]/15'
           }`}
-          title="Highlight circular dependency cycles"
+          title="Highlight circular dependency cycles in redline ink"
         >
-          <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-          <span>Cycles{analysisData?.cycles?.length ? ` (${analysisData.cycles.length})` : ''}</span>
+          <AlertTriangle className="w-3.5 h-3.5 text-[#FF3333]" />
+          <span>[REDLINE CYCLES{analysisData?.cycles?.length ? ` : ${analysisData.cycles.length}` : ''}]</span>
         </button>
 
         {/* ⚡ Blast Radius HUD — shown only when active */}
@@ -278,11 +288,40 @@ export default function Header({
         {/* AI Insights */}
         <button
           onClick={onOpenAIModal}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-dark-950 font-semibold text-xs transition shadow-glow"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded blueprint-stamp text-[#00FFFF] text-xs font-semibold shadow-blueprint"
         >
           <Sparkles className="w-3.5 h-3.5 fill-current" />
-          <span>AI Insights</span>
+          <span>[AI SPEC AUDIT]</span>
         </button>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-white/20" />
+
+        {/* User Account State */}
+        {currentUser ? (
+          <div className="flex items-center gap-2 font-mono">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#001C38] border border-[#00FFFF]/40 text-xs text-[#00FFFF]">
+              <span className="w-2 h-2 rounded-full bg-[#00FFFF]"></span>
+              <span className="max-w-[120px] truncate">
+                {currentUser.displayName || currentUser.email}
+              </span>
+            </div>
+            <button
+              onClick={onLogout}
+              className="px-2.5 py-1 text-xs rounded border border-white/20 text-slate-300 hover:text-white hover:bg-white/10 transition"
+              title="Sign out"
+            >
+              EXIT
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onOpenAuthModal}
+            className="px-3 py-1.5 text-xs font-semibold rounded blueprint-stamp text-[#00FFFF] shadow-blueprint"
+          >
+            [AUTH: SIGN IN]
+          </button>
+        )}
       </div>
     </header>
   );

@@ -24,16 +24,27 @@ export default {
           rose: '#F43F5E',
           emerald: '#10B981',
           amber: '#F59E0B',
+        },
+        blueprint: {
+          bg: '#002B54',
+          deep: '#001C38',
+          paper: '#003366',
+          cyan: '#00FFFF',
+          redline: '#FF3333',
+          line: 'rgba(255, 255, 255, 0.85)',
+          dim: 'rgba(255, 255, 255, 0.25)',
         }
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
+        mono: ['"Roboto Mono"', 'monospace'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        architect: ['"Architects Daughter"', 'cursive'],
       },
       boxShadow: {
         glow: '0 0 25px -5px rgba(0, 240, 255, 0.3)',
         'glow-red': '0 0 25px -5px rgba(244, 63, 94, 0.4)',
         'glow-purple': '0 0 25px -5px rgba(168, 85, 247, 0.35)',
+        'blueprint': '0 0 20px -3px rgba(0, 255, 255, 0.25)',
       }
     },
   },

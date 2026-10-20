@@ -18,6 +18,7 @@ npm-debug.log*
 .codexray/
 .env
 .env.*
+!.env.example
 
 # Editors and operating systems
 .vscode/

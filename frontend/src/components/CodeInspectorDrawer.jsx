@@ -12,8 +12,10 @@ import {
   AlertTriangle,
   Copy,
   Check,
-  Zap
+  Zap,
+  Lock
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function CodeInspectorDrawer({
   node,
@@ -21,8 +23,10 @@ export default function CodeInspectorDrawer({
   onSelectNode,
   onBlastRadius,
 }) {
+  const { currentUser } = useAuth();
   const [fileDetails, setFileDetails] = useState(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [isRestricted, setIsRestricted] = useState(false);
   const [fileInsight, setFileInsight] = useState(null);
   const [isLoadingInsight, setIsLoadingInsight] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -32,18 +36,28 @@ export default function CodeInspectorDrawer({
     if (!node) return;
     setFileInsight(null);
     setIsLoadingFile(true);
+    setIsRestricted(false);
 
-    fetch(`/api/file?path=${encodeURIComponent(node.id)}`)
-      .then(res => res.json())
+    const headers = currentUser?.email ? { 'X-User-Email': currentUser.email } : {};
+
+    fetch(`/api/file?path=${encodeURIComponent(node.id)}`, { headers })
+      .then(async res => {
+        if (res.status === 403) {
+          setIsRestricted(true);
+          setIsLoadingFile(false);
+          return null;
+        }
+        return res.json();
+      })
       .then(data => {
-        setFileDetails(data);
+        if (data) setFileDetails(data);
         setIsLoadingFile(false);
       })
       .catch(err => {
         console.error("Failed to fetch file content", err);
         setIsLoadingFile(false);
       });
-  }, [node]);
+  }, [node, currentUser]);
 
   const handleFetchInsight = () => {
     if (!node) return;
@@ -253,19 +267,33 @@ export default function CodeInspectorDrawer({
 
         {activeTab === 'code' && (
           <div className="relative">
-            <button
-              onClick={handleCopyCode}
-              className="absolute top-2 right-2 p-1.5 rounded-lg bg-dark-900 border border-white/10 hover:border-white/30 text-slate-300 hover:text-white transition"
-              title="Copy code"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-            {isLoadingFile ? (
-              <div className="p-8 text-center text-xs text-slate-500">Loading code...</div>
+            {isRestricted ? (
+              <div className="p-8 rounded-xl glass-panel border border-amber-500/20 bg-amber-950/10 text-center space-y-2">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <h4 className="text-sm font-semibold text-white">Source Code Protected</h4>
+                <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                  Access to CodeX-RAY application core source code is restricted to administrators.
+                </p>
+              </div>
             ) : (
-              <pre className="p-4 rounded-xl glass-panel font-mono text-xs text-slate-300 overflow-x-auto leading-relaxed border border-white/5 max-h-[550px]">
-                <code>{fileDetails?.content || "// Empty file"}</code>
-              </pre>
+              <>
+                <button
+                  onClick={handleCopyCode}
+                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-dark-900 border border-white/10 hover:border-white/30 text-slate-300 hover:text-white transition"
+                  title="Copy code"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                {isLoadingFile ? (
+                  <div className="p-8 text-center text-xs text-slate-500">Loading code...</div>
+                ) : (
+                  <pre className="p-4 rounded-xl glass-panel font-mono text-xs text-slate-300 overflow-x-auto leading-relaxed border border-white/5 max-h-[550px]">
+                    <code>{fileDetails?.content || "// Empty file"}</code>
+                  </pre>
+                )}
+              </>
             )}
           </div>
         )}

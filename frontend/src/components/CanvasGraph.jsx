@@ -47,6 +47,7 @@ export default function CanvasGraph({
   });
 
   const [dirColorMap, setDirColorMap] = useState({});
+  const [coords, setCoords]           = useState({ x: 0, y: 0 });
 
   const getDirColor = useCallback((dir) => {
     if (!dir || dir === 'root') return '#94A3B8';
@@ -427,8 +428,15 @@ export default function CanvasGraph({
 
     const onMouseMove = e => {
       const rect  = canvas.getBoundingClientRect();
-      const found = getNodeAt(e.clientX - rect.left, e.clientY - rect.top);
-      if (found !== interactionRef.current.hoveredNode) { setHoveredNode(found); canvas.style.cursor = found ? 'pointer' : 'default'; render(); }
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const t = transformRef.current;
+      const wx = Math.round((sx - t.x) / t.k);
+      const wy = Math.round((sy - t.y) / t.k);
+      setCoords({ x: wx, y: wy });
+
+      const found = getNodeAt(sx, sy);
+      if (found !== interactionRef.current.hoveredNode) { setHoveredNode(found); canvas.style.cursor = found ? 'crosshair' : 'default'; render(); }
     };
     const onClick = e => {
       const rect  = canvas.getBoundingClientRect();
@@ -468,13 +476,23 @@ export default function CanvasGraph({
   }, [graphData, viewMode]);
 
   return (
-    <div ref={containerRef} className="graph-sheet relative w-full h-full overflow-hidden bg-dark-950">
+    <div ref={containerRef} className="graph-sheet relative w-full h-full overflow-hidden bg-[#002244]">
       <canvas ref={canvasRef} className="block w-full h-full" />
+
+      {/* Blueprint Technical Coordinate HUD */}
+      <div className="absolute top-20 right-6 z-20 pointer-events-none flex items-center gap-3 px-3 py-1.5 rounded-lg glass-panel font-mono text-[11px] text-[#00FFFF] border border-[#00FFFF]/30 shadow-blueprint select-none">
+        <span className="text-white/60">COORD:</span>
+        <span>X:{coords.x} Y:{coords.y}</span>
+        <span className="text-white/30">|</span>
+        <span className="text-white/60">GRID: 20px</span>
+        <span className="text-white/30">|</span>
+        <span className="text-emerald-400 font-bold">SCALE: 1:1</span>
+      </div>
 
       {/* Right-click hint (shown only when nothing is active) */}
       {!blastRadiusNodeId && !selectedNode && (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 text-[10px] font-mono text-slate-600 pointer-events-none select-none">
-          Right-click any node to compute Blast Radius
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-3 py-1 rounded bg-[#001C38]/80 border border-white/20 text-[10px] font-mono text-[#00FFFF] pointer-events-none select-none tracking-widest uppercase">
+          [ DRAFTING NOTE: RIGHT-CLICK NODE FOR BLAST RADIUS ]
         </div>
       )}
 

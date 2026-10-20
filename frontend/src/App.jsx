@@ -6,6 +6,8 @@ import CodeInspectorDrawer from './components/CodeInspectorDrawer';
 import AIInsightsModal from './components/AIInsightsModal';
 import ScanRepoModal from './components/ScanRepoModal';
 import ScanHistoryDrawer from './components/ScanHistoryDrawer';
+import AuthModal from './components/AuthModal';
+import { useAuth } from './context/AuthContext';
 import {
   ZoomIn,
   ZoomOut,
@@ -43,6 +45,9 @@ export default function App() {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const { currentUser, logout, isFirebaseConfigured } = useAuth();
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -60,7 +65,11 @@ export default function App() {
 
   // 1. Fetch available sample repos and the project selected by the CLI.
   useEffect(() => {
-    Promise.all([fetch('/api/samples').then(res => res.json()), fetch('/api/config').then(res => res.json())])
+    const headers = currentUser?.email ? { 'X-User-Email': currentUser.email } : {};
+    Promise.all([
+      fetch('/api/samples', { headers }).then(res => res.json()),
+      fetch('/api/config').then(res => res.json())
+    ])
       .then(([availableSamples, config]) => {
         const initialPath = config.initial_path;
         const initialWorkspace = initialPath ? {
@@ -79,7 +88,7 @@ export default function App() {
         }
       })
       .catch(err => console.error("Failed to fetch samples", err));
-  }, []);
+  }, [currentUser]);
 
   // 2. Scan Trigger & Polling
   const triggerScan = async (path = null, force = false, sampleId = null) => {
@@ -88,9 +97,12 @@ export default function App() {
     setScanMessage("Initializing scan...");
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.email) headers['X-User-Email'] = currentUser.email;
+
       const res = await fetch('/api/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           path: path,
           sample_id: sampleId || (path ? null : currentSampleId),
@@ -99,6 +111,11 @@ export default function App() {
       });
 
       const data = await res.json();
+      if (!res.ok) {
+        setIsScanning(false);
+        setScanMessage(data.detail || "Scan request failed");
+        return;
+      }
       if (data.job_id === 'cached') {
         setScanProgress(100);
         setScanMessage("Loaded from cache");
@@ -233,6 +250,9 @@ export default function App() {
         onClearBlastRadius={() => {}}
         analysisData={analysisData}
         graphStats={graphData?.stats}
+        currentUser={currentUser}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onLogout={logout}
       />
 
       {/* Main Canvas Area */}
@@ -372,6 +392,13 @@ export default function App() {
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         onLoadScan={loadAllArtifacts}
+      />
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen || (isFirebaseConfigured && !currentUser)}
+        onClose={() => setIsAuthModalOpen(false)}
+        forceGate={isFirebaseConfigured && !currentUser}
       />
     </div>
   );

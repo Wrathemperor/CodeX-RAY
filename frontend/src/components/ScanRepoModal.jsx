@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FolderOpen, ScanLine, X, CheckCircle2, AlertCircle, Loader2, Clock } from 'lucide-react';
+import { FolderOpen, ScanLine, X, CheckCircle2, AlertCircle, Loader2, Clock, FolderSearch } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function ScanRepoModal({ isOpen, onClose, onTriggerScan, recentHistory = [] }) {
+  const { currentUser } = useAuth();
   const [path, setPath]         = useState('');
   const [validation, setVal]    = useState(null);   // null | { valid, message, file_count_estimate }
   const [checking, setChecking] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [message, setMessage]   = useState('');
@@ -25,7 +28,8 @@ export default function ScanRepoModal({ isOpen, onClose, onTriggerScan, recentHi
     setChecking(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res  = await fetch(`/api/validate-path?path=${encodeURIComponent(path.trim())}`);
+        const headers = currentUser?.email ? { 'X-User-Email': currentUser.email } : {};
+        const res  = await fetch(`/api/validate-path?path=${encodeURIComponent(path.trim())}`, { headers });
         const data = await res.json();
         setVal(data);
       } catch {
@@ -35,7 +39,30 @@ export default function ScanRepoModal({ isOpen, onClose, onTriggerScan, recentHi
       }
     }, 600);
     return () => clearTimeout(debounceRef.current);
-  }, [path]);
+  }, [path, currentUser]);
+
+  const handleBrowseFolder = async () => {
+    setBrowsing(true);
+    try {
+      const headers = currentUser?.email ? { 'X-User-Email': currentUser.email } : {};
+      const res = await fetch('/api/browse-directory', {
+        method: 'POST',
+        headers
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setVal({ valid: false, message: data.detail || 'Could not select folder' });
+        return;
+      }
+      if (!data.cancelled && data.path) {
+        setPath(data.path);
+      }
+    } catch (e) {
+      setVal({ valid: false, message: e.message || 'Error opening folder picker' });
+    } finally {
+      setBrowsing(false);
+    }
+  };
 
   const handleScan = async (scanPath) => {
     const target = scanPath || path.trim();
@@ -43,12 +70,20 @@ export default function ScanRepoModal({ isOpen, onClose, onTriggerScan, recentHi
     setScanning(true); setProgress(5); setMessage('Starting scan…');
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (currentUser?.email) headers['X-User-Email'] = currentUser.email;
+
       const res  = await fetch('/api/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ path: target, force: false }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setMessage(`❌ ${data.detail || 'Scan request failed'}`);
+        setScanning(false);
+        return;
+      }
 
       if (data.job_id === 'cached') {
         setProgress(100); setMessage('Loaded from cache');
@@ -109,18 +144,35 @@ export default function ScanRepoModal({ isOpen, onClose, onTriggerScan, recentHi
             <label className="block text-xs font-medium text-slate-400 mb-1.5">
               Absolute Folder Path
             </label>
-            <div className="relative">
-              <FolderOpen className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={path}
-                onChange={e => setPath(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && validation?.valid) handleScan(); }}
-                placeholder="e.g. C:\Users\you\projects\my-app"
-                disabled={scanning}
-                className="w-full pl-9 pr-4 py-2.5 text-sm font-mono rounded-lg bg-dark-900/80 border border-white/10 text-slate-100 placeholder-slate-600 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition disabled:opacity-50"
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <FolderOpen className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={path}
+                  onChange={e => setPath(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && validation?.valid) handleScan(); }}
+                  placeholder="e.g. C:\Users\you\projects\my-app"
+                  disabled={scanning || browsing}
+                  className="w-full pl-9 pr-4 py-2.5 text-sm font-mono rounded-lg bg-dark-900/80 border border-white/10 text-slate-100 placeholder-slate-600 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition disabled:opacity-50"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleBrowseFolder}
+                disabled={scanning || browsing}
+                className="px-3.5 py-2.5 text-xs font-medium rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-300 hover:text-cyan-200 transition flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                title="Browse device for directory"
+              >
+                {browsing ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                ) : (
+                  <FolderSearch className="w-4 h-4 text-cyan-400" />
+                )}
+                <span>Browse</span>
+              </button>
             </div>
 
             {/* Validation feedback */}

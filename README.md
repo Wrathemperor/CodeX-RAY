@@ -164,5 +164,50 @@ python tests/test_backend.py
 
 ---
 
+## 🔐 Free Account & Firebase Setup
+
+CodeX-RAY gates access behind free email & password registration stored in Google Firebase.
+
+### 1. Create a Firebase Project
+1. Go to the [Firebase Console](https://console.firebase.google.com/) and click **Create a project**.
+2. Go to **Build > Authentication > Sign-in method**, enable **Email/Password**, and save.
+3. Go to **Build > Firestore Database**, click **Create database**, and start in production (or test) mode.
+4. Go to **Project Settings > General**, under *Your apps*, click the **Web (`</>`)** icon, and register the app.
+5. Copy the configuration object keys.
+
+### 2. Configure Environment Variables
+Copy `.env.example` to `frontend/.env` and insert your Firebase credentials:
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+```env
+VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-app
+VITE_FIREBASE_STORAGE_BUCKET=your-app.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:...
+```
+
+Rebuild frontend assets:
+```bash
+cd frontend && npm run build
+```
+
+---
+
+## 🐙 Push to GitHub
+
+1. Create a new repository on [GitHub](https://github.com/new) (e.g. `CodeX-RAY`).
+2. Add the remote and push:
+```bash
+git remote add origin https://github.com/<your-username>/CodeX-RAY.git
+git branch -M main
+git push -u origin main
+```
+
+---
+
 ## 📄 License
 Released under the [MIT License](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance and [SECURITY.md](SECURITY.md) for vulnerability reporting.

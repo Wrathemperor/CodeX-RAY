@@ -2,9 +2,11 @@ import asyncio
 import os
 import time
 import uuid
+import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -34,6 +36,40 @@ app.add_middleware(
 BASE_DIR      = Path(__file__).resolve().parent.parent
 SAMPLES_DIR   = BASE_DIR / "backend" / "samples"
 FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
+
+ADMIN_EMAILS = [
+    e.strip().lower()
+    for e in os.environ.get("CODEXRAY_ADMIN_EMAILS", "").split(",")
+    if e.strip()
+]
+
+def is_admin_user(user_email: Optional[str] = None) -> bool:
+    """Return True if no admin restriction configured, or user_email is in ADMIN_EMAILS."""
+    if not ADMIN_EMAILS:
+        # Default local/unconfigured mode: local user is treated as admin
+        return True
+    if not user_email:
+        return False
+    return user_email.strip().lower() in ADMIN_EMAILS
+
+def pick_directory_native() -> Optional[str]:
+    """Open native OS folder dialog on Windows / Linux / macOS."""
+    if sys.platform == "win32":
+        cmd = [
+            "powershell", "-NoProfile", "-NonInteractive", "-Command",
+            "[System.Reflection.Assembly]::LoadWithPartialName('System.windows.forms') | Out-Null; "
+            "$f = New-Object System.Windows.Forms.FolderBrowserDialog; "
+            "$f.Description = 'Select project folder to scan with CodeX-RAY'; "
+            "$f.ShowNewFolderButton = $false; "
+            "if ($f.ShowDialog() -eq 'OK') { Write-Output $f.SelectedPath }"
+        ]
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            chosen = res.stdout.strip()
+            return chosen if chosen else None
+        except Exception:
+            return None
+    return None
 
 active_jobs: Dict[str, Dict] = {}
 scan_cache:  Dict[str, Dict] = {}
@@ -159,24 +195,52 @@ def get_config():
     return {"initial_path": INITIAL_PROJECT}
 
 @app.get("/api/samples")
-def get_samples():
-    return [
+def get_samples(x_user_email: Optional[str] = Header(None)):
+    items = [
         {"id": "python_service",  "name": "Python Microservice",
          "description": "Multi-module backend with intentional circular import & orphan modules",
          "path": str(SAMPLES_DIR / "python_service"), "tech": "Python, AST"},
         {"id": "react_ecommerce", "name": "React E-Commerce",
          "description": "Modular TypeScript/React app using @/* path aliases and domain services",
          "path": str(SAMPLES_DIR / "react_ecommerce"), "tech": "TypeScript, React, Aliases"},
-        {"id": "self",            "name": "CodeX-RAY (Self)",
-         "description": "Scan this CodeX-RAY repository itself to visualise our own architecture",
-         "path": str(BASE_DIR), "tech": "FastAPI, React, Canvas"},
     ]
+    # Only allow admin to see and scan CodeX-RAY's own repo
+    if is_admin_user(x_user_email):
+        items.append({
+            "id": "self",
+            "name": "CodeX-RAY (Self)",
+            "description": "Scan this CodeX-RAY repository itself to visualise our own architecture",
+            "path": str(BASE_DIR),
+            "tech": "FastAPI, React, Canvas"
+        })
+    return items
+
+
+# ──────────────────────────── Native Browse ──────────────────────
+
+@app.post("/api/browse-directory")
+async def browse_directory(x_user_email: Optional[str] = Header(None)):
+    """Open host device folder dialog to pick project directory."""
+    loop = asyncio.get_event_loop()
+    selected_path = await loop.run_in_executor(None, pick_directory_native)
+    if not selected_path:
+        return {"cancelled": True, "path": None}
+
+    resolved = str(Path(selected_path).resolve())
+    # Protect CodeX-RAY source folder from non-admins
+    if resolved == str(BASE_DIR.resolve()) and not is_admin_user(x_user_email):
+        raise HTTPException(
+            status_code=403,
+            detail="Access to CodeX-RAY core source code is restricted to administrators."
+        )
+
+    return {"cancelled": False, "path": resolved}
 
 
 # ──────────────────────────── Validate Path ──────────────────────
 
 @app.get("/api/validate-path")
-def validate_path(path: str = Query(...)):
+def validate_path(path: str = Query(...), x_user_email: Optional[str] = Header(None)):
     """Feature 2: Live path validation for the Scan Repo modal."""
     try:
         p = Path(path).resolve()
@@ -184,6 +248,14 @@ def validate_path(path: str = Query(...)):
             return {"valid": False, "exists": False, "message": "Path does not exist"}
         if not p.is_dir():
             return {"valid": False, "exists": True, "message": "Path is a file, not a directory"}
+
+        if str(p) == str(BASE_DIR.resolve()) and not is_admin_user(x_user_email):
+            return {
+                "valid": False,
+                "exists": True,
+                "message": "Protected directory: CodeX-RAY core repository requires admin access"
+            }
+
         # Quick estimate: count files (not full scan)
         exts = {'.py', '.js', '.ts', '.jsx', '.tsx', '.mjs'}
         count = sum(1 for f in p.rglob('*') if f.suffix in exts and '.git' not in f.parts
@@ -197,7 +269,7 @@ def validate_path(path: str = Query(...)):
 # ──────────────────────────── Scan ───────────────────────────────
 
 @app.post("/api/scan")
-def trigger_scan(req: ScanRequest, background_tasks: BackgroundTasks):
+def trigger_scan(req: ScanRequest, background_tasks: BackgroundTasks, x_user_email: Optional[str] = Header(None)):
     target_path = req.path
     if req.sample_id:
         sample_map = {
@@ -213,6 +285,13 @@ def trigger_scan(req: ScanRequest, background_tasks: BackgroundTasks):
         target_path = current_state["active_path"]
 
     normalized = str(Path(target_path).resolve())
+
+    # Protect self-scan from non-admin users
+    if normalized == str(BASE_DIR.resolve()) and not is_admin_user(x_user_email):
+        raise HTTPException(
+            status_code=403,
+            detail="Scanning CodeX-RAY application source code is restricted to administrators."
+        )
 
     if not req.force and normalized in scan_cache:
         cached = scan_cache[normalized]
@@ -300,10 +379,17 @@ def get_file_insight(req: FileInsightRequest):
 
 
 @app.get("/api/file")
-def get_file_content(path: str = Query(...)):
+def get_file_content(path: str = Query(...), x_user_email: Optional[str] = Header(None)):
     active_path = current_state["active_path"]
     root        = Path(active_path).resolve()
     full_path   = (root / path).resolve()
+
+    # Protect CodeX-RAY application source files from non-admin accounts
+    if str(root) == str(BASE_DIR.resolve()) and not is_admin_user(x_user_email):
+        raise HTTPException(
+            status_code=403,
+            detail="Source code viewing for CodeX-RAY application files is restricted to administrators."
+        )
 
     if not str(full_path).startswith(str(root)):
         raise HTTPException(status_code=403, detail="Path traversal forbidden")

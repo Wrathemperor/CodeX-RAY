@@ -4,66 +4,119 @@
 
 @layer base {
   * {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 }
 
-/* Glassmorphism utility */
+/* 📐 Architectural Blueprint Panels */
 .glass-panel {
-  background: rgba(11, 15, 25, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 43, 84, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 20px -2px rgba(0, 20, 50, 0.6);
 }
 
 .glass-panel-elevated {
-  background: rgba(17, 24, 39, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  background: rgba(0, 34, 68, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  box-shadow: 0 10px 35px -5px rgba(0, 20, 50, 0.8);
 }
 
-/* Faint graph paper makes it easier to follow long dependency paths. */
+/* 📐 Technical Blueprint Drafting Sheet Grid */
 .graph-sheet {
-  background-color: #070b14;
+  background-color: #002244;
   background-image:
-    linear-gradient(rgba(56, 189, 248, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.045) 1px, transparent 1px),
-    linear-gradient(rgba(129, 140, 248, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(129, 140, 248, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(0, 255, 255, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.14) 1px, transparent 1px);
   background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
 }
 
-/* Custom sleek scrollbar */
+/* Blueprint Corner Crosshair Accents */
+.blueprint-crosshair {
+  position: relative;
+}
+.blueprint-crosshair::before {
+  content: "+";
+  position: absolute;
+  top: -6px;
+  left: -5px;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  color: #00FFFF;
+  pointer-events: none;
+}
+.blueprint-crosshair::after {
+  content: "+";
+  position: absolute;
+  bottom: -7px;
+  right: -5px;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  color: #00FFFF;
+  pointer-events: none;
+}
+
+/* Blueprint Technical Stamp Button */
+.blueprint-stamp {
+  font-family: 'Roboto Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  background: rgba(0, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+.blueprint-stamp:hover {
+  background: rgba(0, 255, 255, 0.2);
+  border-color: #00FFFF;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+}
+
+/* Redline Stamp */
+.blueprint-redline {
+  border-color: rgba(255, 51, 51, 0.6);
+  background: rgba(255, 51, 51, 0.12);
+  color: #FF6666;
+}
+.blueprint-redline:hover {
+  border-color: #FF3333;
+  background: rgba(255, 51, 51, 0.25);
+  color: #FFFFFF;
+}
+
+/* Custom sleek blueprint scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(11, 15, 25, 0.5);
+  background: #001C38;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(59, 77, 110, 0.6);
-  border-radius: 3px;
+  background: rgba(0, 255, 255, 0.3);
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 240, 255, 0.6);
+  background: #00FFFF;
 }
 
-/* Radar pulse animation for circular dependencies */
+/* Radar pulse animation for circular dependencies (Redline) */
 @keyframes pulse-ring {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+    box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7);
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 10px rgba(244, 63, 94, 0);
+    box-shadow: 0 0 0 8px rgba(255, 51, 51, 0);
   }
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+    box-shadow: 0 0 0 0 rgba(255, 51, 51, 0);
   }
 }
 
